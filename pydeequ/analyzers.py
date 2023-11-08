@@ -3,13 +3,14 @@
 Analyzers file for all the different analyzers classes in Deequ
 """
 import json
+from typing import Dict
 
 from pyspark.sql import DataFrame, SparkSession, SQLContext
 
 from pydeequ.pandas_utils import ensure_pyspark_df
 from pydeequ.repository import MetricsRepository, ResultKey
 from enum import Enum
-from pydeequ.scala_utils import to_scala_seq
+from pydeequ.scala_utils import to_scala_seq, to_scala_map
 
 
 class _AnalyzerObject:
@@ -824,3 +825,31 @@ class DataTypeInstances(Enum):
             return dataType_analyzers_class.Fractional()
         else:
             raise ValueError(f"{jvm} is not a valid datatype Object")
+
+class Distance(_AnalyzerObject):
+
+    def __init__(self):
+        self._current_analyzer = None
+
+    def categoricalDistance(self, sample1: Dict[str, int], sample2: Dict[str, int], correct_for_low_samples: bool = False, method: str = "l-infinity"):
+
+        if method == "l-infinity":
+            l_infinity = self._deequAnalyzers.Distance.LInfinityMethod
+            self._current_analyzer = self._deequAnalyzers.Distance.categoricalDistance(to_scala_map(spark, sample1),to_scala_map(spark, sample2), correct_for_low_samples, l_infinity)
+            return self
+        elif method == "chi-square":
+            chi_square = self._deequAnalyzers.Distance.ChisquareMethod
+            self._current_analyzer = self._deequAnalyzers.Distance.categoricalDistance(to_scala_map(spark, sample1),to_scala_map(spark, sample2), correct_for_low_samples, chi_square)
+            return self
+        else:
+            raise ValueError(f"{method} is not a valid categorical distance method. Use 'l-infinity' or 'chi-square' values.")
+    
+    @property
+    def _analyzer_jvm(self):
+        """
+        Return the distance of categorical profiles based on different distance methods
+
+        :return self
+        # """
+        return self._current_analyzer
+        
