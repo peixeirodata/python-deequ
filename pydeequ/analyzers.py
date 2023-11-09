@@ -3,7 +3,7 @@
 Analyzers file for all the different analyzers classes in Deequ
 """
 import json
-from typing import Dict
+from typing import Dict, Optional
 
 from pyspark.sql import DataFrame, SparkSession, SQLContext
 
@@ -73,7 +73,8 @@ class AnalyzerContext:
         if forAnalyzers:
             raise NotImplementedError("forAnalyzers have not been implemented yet.")
         forAnalyzers = getattr(
-            spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext, "successMetricsAsDataFrame$default$3"
+            spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext,
+            "successMetricsAsDataFrame$default$3",
         )()
         analysis_result = (
             spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext.successMetricsAsDataFrame(
@@ -85,7 +86,9 @@ class AnalyzerContext:
             sparkSession=spark_session,
             jsqlContext=spark_session._jsparkSession.sqlContext(),
         )
-        return DataFrame(analysis_result, sql_ctx).toPandas() if pandas else DataFrame(analysis_result, sql_ctx)
+        return (
+            DataFrame(analysis_result, sql_ctx).toPandas() if pandas else DataFrame(analysis_result, sql_ctx)
+        )
 
     @classmethod
     def successMetricsAsJson(cls, spark_session: SparkSession, analyzerContext, forAnalyzers: list = None):
@@ -100,10 +103,13 @@ class AnalyzerContext:
         if forAnalyzers:
             raise NotImplementedError("forAnalyzers have not been implemented yet.")
         forAnalyzers = getattr(
-            spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext, "successMetricsAsJson$default$2"
+            spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext,
+            "successMetricsAsJson$default$2",
         )()
-        analysis_result = spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext.successMetricsAsJson(
-            analyzerContext, forAnalyzers
+        analysis_result = (
+            spark_session._jvm.com.amazon.deequ.analyzers.runners.AnalyzerContext.successMetricsAsJson(
+                analyzerContext, forAnalyzers
+            )
         )
         return json.loads(analysis_result)
 
@@ -117,7 +123,6 @@ class AnalysisRunBuilder:
     """
 
     def __init__(self, spark_session: SparkSession, df: DataFrame):
-
         self._spark_session = spark_session
         self._jvm = spark_session._jvm
         self._jspark_session = spark_session._jsparkSession
@@ -293,7 +298,6 @@ class Compliance(_AnalyzerObject):
     """
 
     def __init__(self, instance, predicate, where=None):
-
         self.instance = instance
         self.predicate = predicate
         self.where = where
@@ -304,7 +308,9 @@ class Compliance(_AnalyzerObject):
 
         :return self
         """
-        return self._deequAnalyzers.Compliance(self.instance, self.predicate, self._jvm.scala.Option.apply(self.where))
+        return self._deequAnalyzers.Compliance(
+            self.instance, self.predicate, self._jvm.scala.Option.apply(self.where)
+        )
 
 
 class Correlation(_AnalyzerObject):
@@ -327,7 +333,9 @@ class Correlation(_AnalyzerObject):
 
         :return self
         """
-        return self._deequAnalyzers.Correlation(self.column1, self.column2, self._jvm.scala.Option.apply(self.where))
+        return self._deequAnalyzers.Correlation(
+            self.column1, self.column2, self._jvm.scala.Option.apply(self.where)
+        )
 
 
 class CountDistinct(_AnalyzerObject):
@@ -444,7 +452,6 @@ class Histogram(_AnalyzerObject):
     """
 
     def __init__(self, column, binningUdf=None, maxDetailBins: int = None, where: str = None):
-
         self.column = column
         self.binningUdf = binningUdf
         self.maxDetailBins = maxDetailBins
@@ -475,7 +482,9 @@ class KLLParameters:
     :param int numberOfBuckets:  number of buckets.
     """
 
-    def __init__(self, spark_session: SparkSession, sketchSize: int, shrinkingFactor: float, numberOfBuckets: int):
+    def __init__(
+        self, spark_session: SparkSession, sketchSize: int, shrinkingFactor: float, numberOfBuckets: int
+    ):
         self._spark_session = spark_session
         self.sketchSize = sketchSize
         self.shrinkingFactor = shrinkingFactor
@@ -512,7 +521,9 @@ class KLLSketch(_AnalyzerObject):
         """
         if not self.kllParameters:
             self.kllParameters = getattr(self._jvm.com.amazon.deequ.analyzers.KLLSketch, "apply$default$2")()
-        return self._deequAnalyzers.KLLSketch(self.column, self._jvm.scala.Option.apply(self.kllParameters._param))
+        return self._deequAnalyzers.KLLSketch(
+            self.column, self._jvm.scala.Option.apply(self.kllParameters._param)
+        )
 
 
 class Maximum(_AnalyzerObject):
@@ -544,7 +555,6 @@ class MaxLength(_AnalyzerObject):
     """
 
     def __init__(self, column, where: str = None):
-
         self.column = column
         self.where = where
 
@@ -566,7 +576,6 @@ class Mean(_AnalyzerObject):
     """
 
     def __init__(self, column, where: str = None):
-
         self.column = column
         self.where = where
 
@@ -738,7 +747,6 @@ class Sum(_AnalyzerObject):
     """
 
     def __init__(self, column, where: str = None):
-
         self.column = column
         self.where = where
 
@@ -801,10 +809,12 @@ class UniqueValueRatio(_AnalyzerObject):
             to_scala_seq(self._jvm, self.columns), self._jvm.scala.Option.apply(self.where)
         )
 
+
 class DataTypeInstances(Enum):
     """
     An enum class that types columns to scala datatypes
     """
+
     Boolean = "Boolean"
     Unknown = "Unknown"
     Fractional = "Fractional"
@@ -826,30 +836,73 @@ class DataTypeInstances(Enum):
         else:
             raise ValueError(f"{jvm} is not a valid datatype Object")
 
-class Distance(_AnalyzerObject):
 
+class Distance(_AnalyzerObject):
     def __init__(self):
         self._current_analyzer = None
 
-    def categoricalDistance(self, sample1: Dict[str, int], sample2: Dict[str, int], correct_for_low_samples: bool = False, method: str = "l-infinity"):
-
+    def categoricalDistance(
+        self,
+        sample1: Dict[str, int],
+        sample2: Dict[str, int],
+        correct_for_low_samples: bool = False,
+        method: str = "l-infinity",
+    ):
         if method == "l-infinity":
             l_infinity = self._deequAnalyzers.Distance.LInfinityMethod
-            self._current_analyzer = self._deequAnalyzers.Distance.categoricalDistance(to_scala_map(spark, sample1),to_scala_map(spark, sample2), correct_for_low_samples, l_infinity)
+            self._current_analyzer = self._deequAnalyzers.Distance.categoricalDistance(
+                to_scala_map(spark, sample1),
+                to_scala_map(spark, sample2),
+                correct_for_low_samples,
+                l_infinity,
+            )
             return self
         elif method == "chi-square":
             chi_square = self._deequAnalyzers.Distance.ChisquareMethod
-            self._current_analyzer = self._deequAnalyzers.Distance.categoricalDistance(to_scala_map(spark, sample1),to_scala_map(spark, sample2), correct_for_low_samples, chi_square)
+            self._current_analyzer = self._deequAnalyzers.Distance.categoricalDistance(
+                to_scala_map(spark, sample1),
+                to_scala_map(spark, sample2),
+                correct_for_low_samples,
+                chi_square,
+            )
             return self
         else:
-            raise ValueError(f"{method} is not a valid categorical distance method. Use 'l-infinity' or 'chi-square' values.")
-    
+            raise ValueError(
+                f"{method} is not a valid categorical distance method. Use 'l-infinity' or 'chi-square' values."
+            )
+
+    def numericalDistance(
+        self,
+        sample1: Dict[str, int],
+        sample2: Dict[str, int],
+        correct_for_low_samples: bool = False,
+        alpha: Optional[float] = None,
+    ):
+        if ("sketchSize" not in sample1) or ("sketchSize" not in sample2):
+            raise ValueError("scketchSize keys must be defined in sample1 and sample2 objects")
+
+        if ("shrinkingFactor" not in sample1) or ("shrinkingFactor" not in sample2):
+            defaultShrinkingFactor = getattr(
+                self._jvm.com.amazon.deequ.analyzers.QuantileNonSample, "apply$default$2"
+            )
+            sample1["shrinkingFactor"] = sample2["shrinkingFactor"] = defaultShrinkingFactor
+
+        sample1_quantile = self._jvm.com.amazon.deequ.analyzers.QuantileNonSample(
+            sample1["sketchSize"], sample1["shrinkingFactor"]
+        )
+        sample2_quantile = self._jvm.com.amazon.deequ.analyzers.QuantileNonSample(
+            sample2["sketchSize"], sample2["shrinkingFactor"]
+        )
+
+        self._current_analyzer = self._deequAnalyzers.Distance.numericalDistance(
+            sample1_quantile, sample2_quantile, correct_for_low_samples, alpha
+        )
+
     @property
     def _analyzer_jvm(self):
         """
         Return the distance of categorical profiles based on different distance methods
 
         :return self
-        # """
+        #"""
         return self._current_analyzer
-        
